@@ -5,6 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -52,6 +55,7 @@ fun TaskListScreen(
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         var newTaskDescription by remember { mutableStateOf("") }
+        var showHint by remember { mutableStateOf(false) }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -78,12 +82,34 @@ fun TaskListScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+
+        HintButton {
+            showHint = true
+        }
+
+
+        if (showHint) {
+            AlertDialog(
+                onDismissRequest = { showHint = false },
+                title = { Text("Подсказка") },
+                text = { Text("Введите текст задачи в поле и нажмите 'Добавить', чтобы добавить её в список.") },
+                confirmButton = {
+                    TextButton(onClick = { showHint = false }) {
+                        Text("Закрыть")
+                    }
+                }
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         tasks.forEach { task ->
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = task.description)
@@ -93,5 +119,32 @@ fun TaskListScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun HintButton(showHint: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    var isPressed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is PressInteraction.Press -> isPressed = true
+                is PressInteraction.Release, is PressInteraction.Cancel -> isPressed = false
+            }
+        }
+    }
+
+    val buttonColor = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+    else MaterialTheme.colorScheme.primary
+
+    Button(
+        onClick = { showHint() },
+        colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
+        interactionSource = interactionSource,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Подсказка")
     }
 }
