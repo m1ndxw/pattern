@@ -7,15 +7,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.example.pattern.ui.theme.PatternTheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.border
+import androidx.compose.ui.Alignment
+import com.example.pattern.ui.theme.PatternTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity(), TaskContract.View {
     private lateinit var presenter: TaskContract.Presenter
@@ -53,10 +54,12 @@ fun TaskListScreen(
     onAddTask: (String) -> Unit,
     onToggleCompletion: (Int) -> Unit
 ) {
-    Column(modifier = Modifier.padding(16.dp)) {
-        var newTaskDescription by remember { mutableStateOf("") }
-        var showHint by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var newTaskDescription by remember { mutableStateOf("") }
+    var showHint by remember { mutableStateOf(false) }
 
+    Column(modifier = Modifier.padding(16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -75,8 +78,23 @@ fun TaskListScreen(
                 )
             }
             Button(onClick = {
-                onAddTask(newTaskDescription)
-                newTaskDescription = ""
+                if (newTaskDescription.isBlank()) {
+                    // Пустая задача
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Задача не может быть пустой!"
+                        )
+                    }
+                } else {
+                    // Успешное добавление
+                    onAddTask(newTaskDescription)
+                    newTaskDescription = ""
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Задача успешно добавлена!"
+                        )
+                    }
+                }
             }) {
                 Text("Добавить")
             }
@@ -84,11 +102,9 @@ fun TaskListScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-
         HintButton {
             showHint = true
         }
-
 
         if (showHint) {
             AlertDialog(
@@ -119,6 +135,13 @@ fun TaskListScreen(
                 )
             }
         }
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            SnackbarHost(hostState = snackbarHostState)
+        }
     }
 }
 
@@ -136,8 +159,9 @@ fun HintButton(showHint: () -> Unit) {
         }
     }
 
-    val buttonColor = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-    else MaterialTheme.colorScheme.primary
+
+    val buttonColor = if (isPressed) Color.White else MaterialTheme.colorScheme.primary
+
 
     Button(
         onClick = { showHint() },
